@@ -1,26 +1,53 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div>
+    <ul v-if="!isFetchingData && sheetData">
+      <li v-for="(row, index) in sheetData" :key="index">
+        <!-- Display your data here -->
+        {{ row }}
+      </li>
+    </ul>
+  </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-}
-</script>
+  data() {
+    return {
+      isFetchingData: false,
+      sheetData: null,
+      baseData: null,
+      
+    };
+  },
+  methods: {
+    async fetchSheetData() {
+      this.isFetchingData = true;
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
+      const sheetID = '1VVcGRFrpePsE-F9g-SS4LWj_Xzf_ymTki-eVaAFZxfk'
+      const sheetName = '予約情報'
+      const APIKey = 'AIzaSyAPiDSKoO-WxsVVnkm4frjMvczC84r6G1o'
+      
+      // Replace with your Google Sheets API URL
+      const URL = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${sheetName}?key=${APIKey}`;
+      
+      try {
+        const res = await fetch(URL);
+        const json = await res.json();
+        // Assuming your data is in a simple array format in the 'values' property
+        // You may need to adjust this depending on the actual structure of your sheet data
+        this.sheetData = json.values;
+        // If your data needs further processing to fit into your application, do it here
+        console.table(this.sheetData);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        this.isFetchingData = false;
+      }
+    },
+
+  },
+  mounted() {
+    this.fetchSheetData();
+  }
+};
+</script>
