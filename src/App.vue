@@ -30,6 +30,15 @@
     </div>
     </template>
   </template>
+
+  <template v-if="currentPage == 'input'">
+    ここでアプリから、予約できるようにします<br>（すぐ！）
+  </template>
+
+  <template v-if="currentPage == 'calendar'">
+    ここにはカレンダーが追加されます<br>（すぐとは言っていない）
+  </template>
+
   
 
 </template>
@@ -232,11 +241,12 @@
   .menu-container{
     display: flex;
     flex-wrap: nowrap;
-    margin: 10px;
+    margin: 20px auto;
+    justify-content: space-around;
   }
 
   .menu-container span{
-    margin-right: 10px;
+    /* margin-right: 10px; */
     background: darkgrey;
     padding: 2.5px 10px;
     border-radius: 2.5px;
