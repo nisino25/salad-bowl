@@ -15,19 +15,43 @@
       
   <template v-if="currentPage == 'check'">
     <template v-if="modifiedData">
-    <div v-for="group in groupedItemsByDate" :key="group.date" data-aos="fade-up">
-      <h2>{{ getDay(group.date) }}</h2>
-      <ul class="schedule-list-container">
-        <div v-for="item in group.items" :key="item.id" class="schedule-list">
+       <!-- Month Selection Dropdown -->
+    <select v-model="selectedMonth" @change="selectMonth(selectedMonth)">
+      <option value="">Select a Month</option>
+      <!-- Generate options dynamically based on available data -->
+      <option v-for="group in groupedItemsByMonth" :key="group.date" :value="group.date">
+        {{ group.date.substring(0, 4) }}-{{ group.date.substring(4, 6) }}
+      </option>
+    </select>
+
+    <div v-if="selectedMonth">
+      <h2 style="float: right; margin: -45px auto 0;">{{ selectedMonth.substring(0, 4) }}-{{ selectedMonth.substring(4, 6) }}</h2>
+      <div v-for="item in filteredItems.dates" :key="item" class="schedule-list-container" data-aos="fade-up">
+        <h2>{{ getDay(item.date) }}</h2>
+        <ul v-for="el in item.items" :key="el" class="schedule-list">
           <div class="list-top">
-            {{ getTime(item.startTime) }} - {{ getTime(item.endTime) }}
+            {{ getTime(el.startTime) }} - {{ getTime(el.endTime) }}
           </div>
           <div class="list-bottom">
-            {{ item.userName }}
+            {{ el.userName }}
           </div>
-        </div>
-      </ul>
+        </ul>
+        <!-- {{ item.name }} - {{ item.date }} -->
+      </div>
     </div>
+      <!-- <div v-for="group in groupedItemsByDate" :key="group.date" data-aos="fade-up">
+        <h2>{{ getDay(group.date) }}</h2>
+        <ul class="schedule-list-container">
+          <div v-for="item in group.items" :key="item.id" class="schedule-list">
+            <div class="list-top">
+              {{ getTime(item.startTime) }} - {{ getTime(item.endTime) }}
+            </div>
+            <div class="list-bottom">
+              {{ item.userName }}
+            </div>
+          </div>
+        </ul>
+      </div> -->
     </template>
   </template>
 
@@ -53,6 +77,8 @@
         isFetchingData: false,
         sheetData: null,
         currentPage: null,
+
+        selectedMonth: '',
         
       };
     },
@@ -76,7 +102,14 @@
           console.error(error);
         } finally {
           this.isFetchingData = false;
+          console.log(this.groupedItemsByMonth[0].date)
+          this.selectedMonth = this.groupedItemsByMonth[0].date
         }
+      },
+
+      selectMonth(month) {
+        this.selectedMonth = month;
+        console.log(this.filteredItems)
       },
       convertDate(numericDate) {
         const dateStr = String(numericDate);
@@ -129,8 +162,8 @@
         this.currentPage = 'check'
 
         await this.fetchSheetData();
-        console.log(this.modifiedData)
-        // console.log(this.groupedItemsByMonth)
+        // console.log(this.modifiedData)
+        console.log(this.groupedItemsByMonth)
     },
 
     computed: {
@@ -149,73 +182,60 @@
 
         return data;
       },
-      
+
       groupedItemsByMonth() {
-        if (!this.modifiedData) return;
-
-        const groupedData = this.modifiedData.reduce((accumulator, item) => {
-          // Extract the year and month from the date
-          const yearMonth = item.date.toString().slice(0, 6); // This will give us 'YYYYMM'
-          const formattedYearMonth = `${yearMonth.slice(0, 4)}-${yearMonth.slice(4, 6)}`; // Formats as 'YYYY-MM'
-
-          // If the accumulator doesn't have this year-month, add it
-          if (!accumulator[formattedYearMonth]) {
-            accumulator[formattedYearMonth] = [];
-          }
-
-          // Push the current item to the correct group
-          accumulator[formattedYearMonth].push(item);
-          return accumulator;
-        }, {});
-
-        // Sort the grouped data by the bigger number in formattedYearMonth
-        const sortedGroupedData = Object.keys(groupedData).sort((a, b) => {
-          return parseInt(b.replace('-', ''), 10) - parseInt(a.replace('-', ''), 10);
-        }).reduce((accumulator, key) => {
-          accumulator[key] = groupedData[key];
-          return accumulator;
-        }, {});
-
-        return sortedGroupedData;
-      },
-      groupedItemsByDate() {
         if (!this.modifiedData) return;
 
         const groupedData = [];
 
         this.modifiedData.forEach(item => {
-          // Format the date as yyyymmdd
-          const dateKey = item.date;
+            // Convert the number to a string and extract the year, month, and date
+            const dateString = item.date.toString(); // Assuming item.date is in YYYYMMDD format
+            const yearMonth = dateString.slice(0, 6); // Get the YYYYMM part of the date
+            const fullDate = dateString; // Use the full YYYYMMDD date for daily grouping
 
-          // Check if a group with this dateKey already exists
-          const existingGroup = groupedData.find(group => group.date === dateKey);
+            // Find or create the group for this yearMonth
+            let monthGroup = groupedData.find(group => group.date === yearMonth);
+            if (!monthGroup) {
+                monthGroup = { date: yearMonth, dates: {} };
+                groupedData.push(monthGroup);
+            }
 
-          if (!existingGroup) {
-            // If it doesn't exist, create a new group
-            const newGroup = {
-              date: dateKey,
-              items: [item],
-            };
-            groupedData.push(newGroup);
-          } else {
-            // If it exists, add the item to the existing group's items array
-            existingGroup.items.push(item);
-          }
-
-          
+            // Find or create the date group within the month group
+            if (!monthGroup.dates[fullDate]) {
+                monthGroup.dates[fullDate] = [];
+            }
+            monthGroup.dates[fullDate].push(item);
         });
 
-        // Sort the grouped data by date
+        // Sort the grouped data by year and month
         groupedData.sort((a, b) => b.date.localeCompare(a.date));
 
-          // Sort items within each date group by item.startTime in ascending order
-          groupedData.forEach(group => {
-            group.items.sort((a, b) => a.startTime - b.startTime);
-          });
+        // Sort each month's dates and their items
+        groupedData.forEach(monthGroup => {
+            Object.keys(monthGroup.dates).forEach(date => {
+                // Sort the items within each date by startTime
+                monthGroup.dates[date].sort((a, b) => a.startTime - b.startTime);
+            });
 
+            // Convert dates from object to array and sort by date
+            monthGroup.dates = Object.entries(monthGroup.dates).sort((a, b) => a[0].localeCompare(b[0])).map(([date, items]) => ({ date, items }));
+        });
 
         return groupedData;
       },
+
+      filteredItems() {
+        if (!this.selectedMonth) return {};
+
+        // Use find to return the first matching group or undefined
+        const foundGroup = this.groupedItemsByMonth.find(group => group.date === this.selectedMonth);
+        
+        // If foundGroup is undefined, return an empty object instead
+        return foundGroup || {};
+      },
+
+
 
 
 
@@ -227,12 +247,14 @@
 
 <style>
   html{
-    background: #051c1c;
+   
     font-family: 'M PLUS Rounded 1c', sans-serif;
     color: white;
   }
 
+
   body{
+    background: #051c1c;
     width: 500px;
     max-width: 90vw;
     margin: auto;
@@ -253,13 +275,15 @@
     transition: all .5s ease-in-out;
   }
 
-  h2{
-    color: #34c064;
-  }
+  
 
   .schedule-list-container{
     list-style-type: none;
     padding: 0;
+  }
+
+  .schedule-list-container h2{
+    color: #34c064;
   }
 
   .schedule-list{
