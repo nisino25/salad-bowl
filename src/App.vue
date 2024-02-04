@@ -57,6 +57,28 @@
 
   <template v-if="currentPage == 'input'">
     ここでアプリから、予約できるようにします<br>（すぐ！）
+    <div class="form-container">
+        <form @submit.prevent="handleSubmit" class="simple-form">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input v-model="form.username" type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="date">Date (YYYYMMDD):</label>
+                <input v-model="form.date" type="text" id="date" pattern="\d{8}" required>
+            </div>
+            <div class="form-group">
+                <label for="startTime">Start Time (HHMM):</label>
+                <input v-model="form.startTime" type="text" id="startTime" pattern="\d{4}" required>
+            </div>
+            <div class="form-group">
+                <label for="endTime">End Time (HHMM):</label>
+                <input v-model="form.endTime" type="text" id="endTime" pattern="\d{4}" required>
+            </div>
+            <button type="submit" class="submit-button">Submit</button>
+        </form>
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+    </div>
   </template>
 
   <template v-if="currentPage == 'calendar'">
@@ -70,6 +92,8 @@
 <script>
   import AOS from 'aos'
   import 'aos/dist/aos.css'
+  import { GoogleSpreadsheet } from 'google-spreadsheet';
+
 
   export default {
     data() {
@@ -79,6 +103,20 @@
         currentPage: null,
 
         selectedMonth: '',
+
+        form: {
+            username: '',
+            date: '',
+            startTime: '',
+            endTime: ''
+        },
+        errorMessage: '',
+
+        creds: {
+          client_email: 'sheet-editor@salada-bowl.iam.gserviceaccount.com',
+          private_key: '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7GXdj/HoHH1uX\nJn6fbldqd1c1hmWEkRiM/zIdMUSTgL6U1Mz48WpeRQQhYI3HlWxFc5odSJiITBxB\n6YyA3xdTA3GdW8zFLfLZRvRZ0uLf8Itwp5b5Go5q1HiuuDZj1cpFBgRZ9mjFlCSI\nLxvpwMPCxXKIDGA1XcG8z1FAUXp1KIqVHiP0FkQS9sTKbUYUo8O1sve4BZVHTjGn\nQvf1lyL4xNPlJyIdKN50za4uixe1xP4FfSta8zcjdnXGBiwGWa0qgTOEjlsZq/LN\n0wBvUx68S85AM1amjIFOptUWWSeZv0IAg11nitycIaDziZnimApCGvEyEDP+Jg/c\nGDioiMVbAgMBAAECggEASvLnpbEE/QdtvD3aaWldMTP/RlzBG/q3t/ueip0q2F+x\neJNKTMsAjiTdg7VW9kWAKs4lRWfIWokKpMi21QUJJeLyR1P30mEWsD1BMx5MbeLB\nKO6phr5BoL/eXDdE6ndA4KeJZLRVwhgXDkq4xsnGYaaQu7khbR9StZzi8n3xLS7R\nqflnC78I/NK/0PEN16OXMlg3bru7RUP7B7iMQ0fpSftqs9FWyHgJaE/757IYTq3E\nponlPOX5aaRXxQqHWB6+lsBa0/Jc9/he0s4nNcQfyDj8RgrbHAoMNU0+S6Z6sUSv\nsm9nbNm9IV/CQIDd1HYaXHDuNLvg+PWygf8rGLLrEQKBgQDpR4wnQ9jD05O8R4s3\nHN3btNBrMv3kmMPE0VTW+knjWm+3poFmqXlTq4bCpD4jDNW38CKtOyR6799xZT8S\nPYqAQKayN7rEGZfhrUMzdc0nvf6KAiVpx9poyUTnIHZmskY50E1GcAE37iukmHhs\ningBZN0iYtPVUPNBmiaJdgrB4wKBgQDNUn52/0OCpdYSjF9OS6sy+0igmRY4MfdB\nknwbgMt+GwtV19lg+0TiTOpR5wQBppp2ur/IAHmEDDd4XZiN3e3+BkntWde0qRCE\n+vOJVzhPZRyX2XgEf40RXDVSSFW8tC/q1fjaZjuBrl8bqhwV5iSrD72LCp7F0TkN\nO/g+/Z7oKQKBgQDbzobJGKzPGDVEW0VaEOEbfCxGVi3Vj/wnH/eI+R1WFIjfywxy\n541iwWShUpEaBaX7Q1HpWKjvDcbE2lmrnkE6x7BKjSh2TodGJjQD8SP2JpgJAiyu\nl5m80qkR/wyRh7mUECpADJmZUdndpa0S2QZqidez5tsjTLtpPQ7Cx28rcQKBgEt6\nc/sSw6KXjCata6vArWLEdWJ0ZHKsC5UTYIRLyILHNleMTeEU/bGjTNBm+FYTBN14\nsV+4rPMZ+ppI7ffZCdBER5D1YhKLxALergBjC9RD+0rnKvOcYCNtnjxtUvdX1fWi\nSyUeR+nYTCZDVqfGPtyToL4oXU2jKDHxRcUCPxRhAoGASb1vd7q3YOza+Nulwpb2\nEJw2ebhziZEs4sFSkkfpoUu4wGY1ANQtqlaHVNAF4G0kB9Fiqo3zxtEv0j/l0Pwc\nYAF9mFHVr3W38ZW4872UUtXdHl0gYcQHI9ZB7zxQd0GN6sFhJ7YAzCXZ8+NWF9PJ\nU2U2xp7n/pFuXEOQLfG51Dg=\n-----END PRIVATE KEY-----\n',
+        },
+        
         
       };
     },
@@ -106,6 +144,31 @@
           this.selectedMonth = this.groupedItemsByMonth[0].date
         }
       },
+
+      async test() {
+        try {
+          // Create an instance of GoogleSpreadsheet and initialize it with your spreadsheet ID
+          const doc = new GoogleSpreadsheet('1VVcGRFrpePsE-F9g-SS4LWj_Xzf_ymTki-eVaAFZxfk'); // Replace with your actual spreadsheet ID
+
+          // Authenticate with the service account (assuming you have already loaded the credentials)
+          await doc.useServiceAccountAuth(this.creds);
+
+          // Load the document (no authentication required for public access)
+          await doc.loadInfo();
+
+          // Access the sheet by its title "予約情報"
+          const sheet = doc.sheetsByTitle['予約情報'];
+
+          // Write to the spreadsheet
+          const rowData = { Column1: 'Value1', Column2: 'Value2' };
+          await sheet.addRow(rowData);
+          console.log('Data added to the spreadsheet successfully:', rowData);
+        } catch (error) {
+          console.error('Error: ', error);
+        }
+      },
+
+
 
       selectMonth(month) {
         this.selectedMonth = month;
@@ -153,13 +216,77 @@
         }
       },
 
+      validateForm() {
+          if (this.form.date.length !== 8 || !/^\d{8}$/.test(this.form.date)) {
+              return "Date must be 8 digits in YYYYMMDD format.";
+          }
+          if (this.form.startTime.length !== 4 || !/^\d{4}$/.test(this.form.startTime)) {
+              return "Start Time must be 4 digits in HHMM format.";
+          }
+          if (this.form.endTime.length !== 4 || !/^\d{4}$/.test(this.form.endTime)) {
+              return "End Time must be 4 digits in HHMM format.";
+          }
+          return "";
+      },
+      handleSubmit() {
+          this.errorMessage = this.validateForm();
+          if (this.errorMessage) {
+              console.error('Validation error:', this.errorMessage);
+              return;
+          }
+          console.log('Form submitted:', this.form);
+          // Handle the form submission, e.g., send data to an API
+      },
+
+      async appendRowToSheet(data) {
+          this.isFetchingData = true;
+
+          const sheetID = '1VVcGRFrpePsE-F9g-SS4LWj_Xzf_ymTki-eVaAFZxfk';
+          const sheetName = '予約情報';
+          const accessToken = 'YOUR_ACCESS_TOKEN'; // Obtain via OAuth 2.0
+
+          const URL = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${sheetName}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+
+          const body = {
+              values: [
+                  [data.date, data.startTime, data.endTime, data.username]
+              ]
+          };
+
+          try {
+              const res = await fetch(URL, {
+                  method: 'POST',
+                  headers: {
+                      'Authorization': `Bearer ${accessToken}`,
+                      'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(body)
+              });
+
+              if (!res.ok) throw new Error('Failed to append data');
+
+              console.log('Row appended successfully');
+          } catch (error) {
+              console.error('Error appending data:', error);
+          } finally {
+              this.isFetchingData = false;
+          }
+      },
+
+
+
+
     },
 
     async mounted() {
         console.clear()
         AOS.init();
 
+
+        // await this.test()
+
         this.currentPage = 'check'
+        // this.currentPage = 'input'
 
         await this.fetchSheetData();
         // console.log(this.modifiedData)
@@ -302,5 +429,49 @@
   .schedule-list .list-bottom{
     text-align: right;
   }
+
+
+  /* ----------------- */
+  .form-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+    color: black;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.submit-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.submit-button:hover {
+    background-color: #45a049;
+}
 
 </style>
