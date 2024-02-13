@@ -82,7 +82,23 @@
   </template>
 
   <template v-if="currentPage == 'calendar'">
-    ここにはカレンダーが追加されます<br>（すぐとは言っていない）
+    ここにはカレンダーが追加されます<br>（すぐとは言っていない）<br>
+    <div class="calendar">
+    <div class="month">
+      <h2>{{ currentMonthName }} {{ currentYear }}</h2>
+      <div class="weekdays">
+        <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
+      </div>
+      <div class="days-grid">
+        <!-- Empty tiles for days before start of the month -->
+        <div class="day empty" v-for="emptyDay in leadingDays" :key="'empty-' + emptyDay"></div>
+        <!-- Actual month days -->
+        <div class="day" v-for="day in daysInMonth" :key="day">
+          {{ day }}
+        </div>
+      </div>
+    </div>
+  </div>
   </template>
 
   
@@ -112,10 +128,15 @@
         },
         errorMessage: '',
 
+
         creds: {
           client_email: 'sheet-editor@salada-bowl.iam.gserviceaccount.com',
           private_key: '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7GXdj/HoHH1uX\nJn6fbldqd1c1hmWEkRiM/zIdMUSTgL6U1Mz48WpeRQQhYI3HlWxFc5odSJiITBxB\n6YyA3xdTA3GdW8zFLfLZRvRZ0uLf8Itwp5b5Go5q1HiuuDZj1cpFBgRZ9mjFlCSI\nLxvpwMPCxXKIDGA1XcG8z1FAUXp1KIqVHiP0FkQS9sTKbUYUo8O1sve4BZVHTjGn\nQvf1lyL4xNPlJyIdKN50za4uixe1xP4FfSta8zcjdnXGBiwGWa0qgTOEjlsZq/LN\n0wBvUx68S85AM1amjIFOptUWWSeZv0IAg11nitycIaDziZnimApCGvEyEDP+Jg/c\nGDioiMVbAgMBAAECggEASvLnpbEE/QdtvD3aaWldMTP/RlzBG/q3t/ueip0q2F+x\neJNKTMsAjiTdg7VW9kWAKs4lRWfIWokKpMi21QUJJeLyR1P30mEWsD1BMx5MbeLB\nKO6phr5BoL/eXDdE6ndA4KeJZLRVwhgXDkq4xsnGYaaQu7khbR9StZzi8n3xLS7R\nqflnC78I/NK/0PEN16OXMlg3bru7RUP7B7iMQ0fpSftqs9FWyHgJaE/757IYTq3E\nponlPOX5aaRXxQqHWB6+lsBa0/Jc9/he0s4nNcQfyDj8RgrbHAoMNU0+S6Z6sUSv\nsm9nbNm9IV/CQIDd1HYaXHDuNLvg+PWygf8rGLLrEQKBgQDpR4wnQ9jD05O8R4s3\nHN3btNBrMv3kmMPE0VTW+knjWm+3poFmqXlTq4bCpD4jDNW38CKtOyR6799xZT8S\nPYqAQKayN7rEGZfhrUMzdc0nvf6KAiVpx9poyUTnIHZmskY50E1GcAE37iukmHhs\ningBZN0iYtPVUPNBmiaJdgrB4wKBgQDNUn52/0OCpdYSjF9OS6sy+0igmRY4MfdB\nknwbgMt+GwtV19lg+0TiTOpR5wQBppp2ur/IAHmEDDd4XZiN3e3+BkntWde0qRCE\n+vOJVzhPZRyX2XgEf40RXDVSSFW8tC/q1fjaZjuBrl8bqhwV5iSrD72LCp7F0TkN\nO/g+/Z7oKQKBgQDbzobJGKzPGDVEW0VaEOEbfCxGVi3Vj/wnH/eI+R1WFIjfywxy\n541iwWShUpEaBaX7Q1HpWKjvDcbE2lmrnkE6x7BKjSh2TodGJjQD8SP2JpgJAiyu\nl5m80qkR/wyRh7mUECpADJmZUdndpa0S2QZqidez5tsjTLtpPQ7Cx28rcQKBgEt6\nc/sSw6KXjCata6vArWLEdWJ0ZHKsC5UTYIRLyILHNleMTeEU/bGjTNBm+FYTBN14\nsV+4rPMZ+ppI7ffZCdBER5D1YhKLxALergBjC9RD+0rnKvOcYCNtnjxtUvdX1fWi\nSyUeR+nYTCZDVqfGPtyToL4oXU2jKDHxRcUCPxRhAoGASb1vd7q3YOza+Nulwpb2\nEJw2ebhziZEs4sFSkkfpoUu4wGY1ANQtqlaHVNAF4G0kB9Fiqo3zxtEv0j/l0Pwc\nYAF9mFHVr3W38ZW4872UUtXdHl0gYcQHI9ZB7zxQd0GN6sFhJ7YAzCXZ8+NWF9PJ\nU2U2xp7n/pFuXEOQLfG51Dg=\n-----END PRIVATE KEY-----\n',
         },
+
+        currentYear: new Date().getFullYear(),
+        currentMonth: new Date().getMonth(), // Note: January is 0, February is 1, etc.
+        weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         
         
       };
@@ -287,9 +308,9 @@
 
         this.currentPage = 'check'
         // this.currentPage = 'input'
+        this.currentPage = 'calendar'
 
         await this.fetchSheetData();
-        // console.log(this.modifiedData)
         console.log(this.groupedItemsByMonth)
     },
 
@@ -361,6 +382,19 @@
         // If foundGroup is undefined, return an empty object instead
         return foundGroup || {};
       },
+
+      daysInMonth() {
+      return new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+    },
+    firstDayOfMonth() {
+      return new Date(this.currentYear, this.currentMonth, 1).getDay();
+    },
+    currentMonthName() {
+      return new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
+    },
+    leadingDays() {
+      return Array.from({ length: this.firstDayOfMonth }, (_, i) => i + 1);
+    },
 
 
 
@@ -472,6 +506,29 @@ input {
 
 .submit-button:hover {
     background-color: #45a049;
+}
+
+.calendar {
+  display: flex;
+  flex-direction: column;
+}
+.month {
+  margin-bottom: 20px;
+}
+.weekdays,
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+}
+.weekday,
+.day {
+  border: 1px solid #ddd;
+  padding: 8px;
+  min-height: 50px;
+}
+.empty {
+  background-color: #f9f9f9;
 }
 
 </style>
