@@ -83,6 +83,8 @@
 
   <template v-if="currentPage == 'calendar'">
     ここにはカレンダーが追加されます<br>（すぐとは言っていない）<br>
+    <button @click="currentMonth--">GO back</button>
+    <button @click="currentMonth++">GO next</button>
     <div class="calendar">
     <div class="month">
       <h2>{{ currentMonthName }} {{ currentYear }}</h2>
@@ -93,8 +95,10 @@
         <!-- Empty tiles for days before start of the month -->
         <div class="day empty" v-for="emptyDay in leadingDays" :key="'empty-' + emptyDay"></div>
         <!-- Actual month days -->
-        <div class="day" v-for="day in daysInMonth" :key="day">
-          {{ day }}
+        <div class="day" v-for="day in daysInMonth" :key="day" >
+          <section @click="newTest(day)">
+            {{ day }} <br> {{ newTest(day) }}
+          </section>
         </div>
       </div>
     </div>
@@ -294,6 +298,26 @@
           }
       },
 
+      newTest(day){
+        let modifiedDay = day
+        if(modifiedDay < 10) modifiedDay = `0${modifiedDay}`
+
+        let modifiedMonth = this.currentMonth+1
+        if(modifiedMonth < 10) modifiedMonth = `0${modifiedMonth}`
+
+        const modifiedDate =`${this.currentYear}${modifiedMonth}${modifiedDay}`
+
+        let count= 0
+        if(!this.modifiedData) return
+
+        this.modifiedData.forEach(item => {
+          
+          if(modifiedDate == item.date) count++
+        });
+
+        return count
+      }
+
 
 
 
@@ -311,7 +335,7 @@
         this.currentPage = 'calendar'
 
         await this.fetchSheetData();
-        console.log(this.groupedItemsByMonth)
+        console.log(this.modifiedData)
     },
 
     computed: {
@@ -384,17 +408,17 @@
       },
 
       daysInMonth() {
-      return new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-    },
-    firstDayOfMonth() {
-      return new Date(this.currentYear, this.currentMonth, 1).getDay();
-    },
-    currentMonthName() {
-      return new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
-    },
-    leadingDays() {
-      return Array.from({ length: this.firstDayOfMonth }, (_, i) => i + 1);
-    },
+        return new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+      },
+      firstDayOfMonth() {
+        return new Date(this.currentYear, this.currentMonth, 1).getDay();
+      },
+      currentMonthName() {
+        return new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' });
+      },
+      leadingDays() {
+        return Array.from({ length: this.firstDayOfMonth }, (_, i) => i + 1);
+      },
 
 
 
